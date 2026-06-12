@@ -1,0 +1,105 @@
+# =============================================================================
+# Appendix A — Master Parameter Sheet (single source of truth)
+#
+# Populate during Phases 0–3; refresh annually.
+# Fields marked phase: P0 / P2 / P3 are filled at that phase; null means
+# "not yet measured — code must refuse to run anything that needs it".
+# Handbook references in parentheses.
+# =============================================================================
+
+programme:
+  capital_thb: 600_000              # Decision: THB 600k recommended floor (Ch.2.4)
+  base_currency: THB
+  cash_benchmark: THOR
+
+strategic_weights:                  # Ch.2 / [P3] — 600k variant, full 3-market sleeve
+  sleeve_a_beta: 0.50
+  sleeve_b_trend: 0.25
+  sleeve_c_ballast: 0.20
+  sleeve_d_cash: 0.05
+  # Fallback if Phase 0 margin computation exceeds 5% buffer (Section 3.4):
+  ballast_split_fallback: { sleeve_c_ballast: 0.15, sleeve_d_cash: 0.10 }
+
+risk_overlay:                       # Ch.2.2 / B.3
+  portfolio_vol_target: 0.10        # 10% annualised
+  vol_window_days: 60
+  intra_month_vol_band: 0.25        # re-act intra-month only if vol moves > 25%
+  beta_scaling_threshold: 0.70      # scale Sleeve A only when m < 0.7
+  circuit_breaker_drawdown: -0.15   # halve gross exposure (Ch.2.2)
+  circuit_breaker_restore: -0.075   # restore when drawdown back inside −7.5%
+  circuit_breaker_cut_fraction: 0.50
+
+trend_sleeve:                       # Ch.6.1 (baseline — do not optimise)
+  sleeve_vol_target: 0.12           # 12% annualised on sleeve capital
+  signal_lookback_days: 252         # 12m; confirm plateau [P2]
+  ensemble_lookbacks_days: [63, 126, 252]   # 3m / 6m / 12m robustness check
+  position_rule: long_flat          # long_flat | long_short — selected at [P2]
+  ewma_lambda: 0.94
+  vol_window_days: 60
+  rebalance: monthly                # first trading day + 25% vol band + signal flips
+  granularity_max_overshoot: 1.5    # one contract ≤ 1.5× per-instrument budget (Ch.2.4)
+
+instruments:                        # Sleeve B universe (Ch.3.1); set confirmed at [P2]
+  S50:
+    name: SET50 Index Futures
+    point_value_thb: 200
+    tick_size: 0.1
+    slippage_ticks_normal: 1
+    slippage_ticks_roll: 2
+    commission_per_side_thb: null   # [P0] actual broker schedule, incl. exchange + clearing
+    initial_margin_thb: null        # [P0] refresh with TFEX revisions
+    maintenance_margin_thb: null    # [P0]
+    enabled: true
+  GO:
+    name: Gold Online Futures
+    point_value_thb: 300            # verify against current TFEX contract spec [P0]
+    tick_size: 0.1
+    slippage_ticks_normal: 2
+    slippage_ticks_roll: 2
+    commission_per_side_thb: null   # [P0]
+    initial_margin_thb: null        # [P0]
+    maintenance_margin_thb: null    # [P0]
+    enabled: true
+  USDTHB:
+    name: USD/THB Futures
+    point_value_thb: 1000           # USD 1,000 contract; verify spec [P0]
+    tick_size: 0.01
+    slippage_ticks_normal: 3
+    slippage_ticks_roll: 3
+    commission_per_side_thb: null   # [P0]
+    initial_margin_thb: null        # [P0]
+    maintenance_margin_thb: null    # [P0]
+    enabled: true                   # drop if cost-adjusted Sharpe of leg negative in Phase 2
+
+rolls:                              # Ch.5.2
+  trigger: volume_crossover_or_t_minus_5
+  days_before_expiry: 5
+  adjustment: panama_difference     # never ratio adjustment (preserves tick economics)
+
+costs:                              # Ch.6.2
+  cost_drag_budget_pa: 0.02         # ≤ 2% p.a. of sleeve B capital
+  set_commission_rate: null         # [P0] incl. VAT
+
+stage_gates:                        # Ch.6/7
+  sleeve_b_min_net_sharpe: 0.4      # vs THOR, full sample [P2]
+  portfolio_min_net_sharpe: 0.6     # [P3]
+  portfolio_max_drawdown: 0.18      # [P3]
+
+margin_model:                       # Ch.3.4 / 7.4 / B.4
+  stressed_im_multiplier: 1.5       # TFEX raises IM by 50% mid-crisis
+  adverse_vm_days: 2
+  adverse_vm_vol_multiplier: 3.0
+  broker_collateral_policy: null    # [P0] cash-only | funds_eligible — confirm in writing
+  max_margin_utilisation: 0.60      # never > 60% of cash buffer in normal conditions
+
+sleeve_a:                           # Ch.7.1 proxy construction
+  global_thai_blend: { global_tri_thb: 0.60, set50_tri: 0.40 }
+  feeder_fund_ter: null             # [P0] recorded TERs
+  drift_rebalance_band: 0.05        # quarterly, act only if sleeve drifts > 5pp
+
+phase0_register:                    # [P0] documentation deliverables (Ch.4.2)
+  broker: null
+  dr_shortlist: []                  # 4–6 names with designated primaries
+  rmf_ssf_thaiesg_providers: []
+  mmf_fund: null                    # incl. redemption cut-off time
+  bond_fund: null

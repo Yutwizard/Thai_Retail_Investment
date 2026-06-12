@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Data — raw and processed market data stay local
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+
+# Results register and run outputs are generated artefacts
+results/
+*.log
+
+# Notebooks checkpoints
+.ipynb_checkpoints/
+
+# Environment / secrets
+.env
